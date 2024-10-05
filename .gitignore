@@ -124,6 +124,7 @@ celerybeat.pid
 # Environments
 .env
 ssl/
+data/
 .venv
 env/
 venv/
