@@ -1,0 +1,1 @@
+FROM memgraph/memgraph:2.20.0
