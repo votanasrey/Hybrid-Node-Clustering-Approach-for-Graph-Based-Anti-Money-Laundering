@@ -1,4 +1,4 @@
-import { Flex, Text, VStack, Heading, Box } from "@chakra-ui/react";
+import { Flex, Text } from "@chakra-ui/react";
 import React from "react";
 import Icon from "../../components/common/Icon";
 
@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
                 alignItems="center"
                 borderRadius="50%"
               >
-                <Icon icon="minus" size={20} color="white" />
+                <Icon icon="user" size={20} color="white" />
               </Flex>
               <Flex flexDirection={"column"} gap={2}>
                 <Text fontWeight={"400"} color="lightGray" size={"18px"}>
