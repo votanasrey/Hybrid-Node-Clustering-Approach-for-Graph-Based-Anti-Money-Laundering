@@ -4,16 +4,19 @@ from dotenv import load_dotenv
 import pandas as pd
 import json
 import datetime
-load_dotenv()
+load_dotenv(override=True)
 
 
-class memgraph_service:
+class MemgraphService:
 
     def __init__(self):
         """
             A init function to connect to the memgraph database 
         """
-        self.mg = Memgraph(os.environ.get("MEMGRAPH_HOST"), 7687)
+        try:
+            self.mg = Memgraph(os.environ.get("MEMGRAPH_HOST"), 7687,os.environ.get("MEMGRAPH_USER"), os.environ.get("MEMGRAPH_PASSWORD"))
+        except Exception as e:
+            print(f"Error connecting to Memgraph: {e}")
       
     def create_transaction(self, transaction):
         """
