@@ -1,0 +1,31 @@
+/* custom text selection color */
+::-moz-selection {
+  /* Code for Firefox */
+  background: #FCD108;
+}
+
+::selection {
+  background: #FCD108;
+}
+
+/* custom sticky footer */
+html,
+body {
+  /* display: flex; */
+  /* min-height: 100vh; */
+  /* flex-direction: column; */
+  height: 100%;
+  margin: 0;
+  font-family: 'Poppins', 'Kantumruy';
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* custom tinyMCE editor with formik validation */
+.tiny-mce-error-validation .tox-tinymce {
+  border: 1px solid red;
+}
+
+.tiny-mce-error-validation .tox .tox-edit-area__iframe {
+  background-color: #FED7D7;
+}
