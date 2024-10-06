@@ -6,6 +6,9 @@ import os
 
 class PostgreSQLService:
     def __init__(self):
+        """
+            A init function to connect to the postgresql database 
+        """
         self.dbname = os.environ.get("POSTGRESQL_DB")
         self.user = os.environ.get("POSTGRESQL_USER")
         self.password = os.environ.get("POSTGRESQL_PASSWORD")
