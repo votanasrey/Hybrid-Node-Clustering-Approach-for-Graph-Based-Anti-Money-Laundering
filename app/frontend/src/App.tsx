@@ -1,35 +1,47 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import {
+  Route,
+  BrowserRouter as Router,
+  Routes,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
+import Cookies from "js-cookie";
+import { EAppRoutes, ECookies } from "./configs/constants";
+import Layout from "./components/Layout";
+import Login from "./routes/login";
+import Dashboard from "./routes/dashboard";
 
-function App() {
-  const [count, setCount] = useState(0)
+function RequiredAuth({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = Cookies.get(ECookies.AUTH_TOKEN);
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+  const location = useLocation();
+  return isAuthenticated ? (
+    <Layout>{children}</Layout>
+  ) : (
+    <Navigate
+      to={EAppRoutes.LOGIN}
+      replace
+      state={{ path: location.pathname }}
+    />
+  );
 }
 
-export default App
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path={EAppRoutes.DASHBOARD}
+          element={
+            <RequiredAuth>
+              <Dashboard />
+            </RequiredAuth>
+          }
+        />
+        <Route path={EAppRoutes.LOGIN} element={<Login />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
