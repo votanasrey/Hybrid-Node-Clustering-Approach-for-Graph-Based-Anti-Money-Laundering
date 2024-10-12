@@ -13,6 +13,7 @@ class User(Base):
     password = Column(String(255), nullable=False)
     first_name = Column(String(30), nullable=False)
     last_name = Column(String(30), nullable=False)
+    avatar = Column(String, nullable=True)
     phone_number = Column(String(15), unique=True, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

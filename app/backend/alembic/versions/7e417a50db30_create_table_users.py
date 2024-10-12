@@ -28,6 +28,7 @@ def upgrade() -> None:
         sa.Column('password', sa.String(length=255), nullable=False),
         sa.Column('first_name', sa.String(length=30), nullable=False),
         sa.Column('last_name', sa.String(length=30), nullable=False),
+        sa.Column('avatar', sa.String(length=255), nullable=True),  # Adding avatar column
         sa.Column('phone_number', sa.String(length=15), nullable=True, unique=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), onupdate=sa.func.now(), nullable=True),
