@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { EAppRoutes, ECookies } from "../../configs/constants";
 import Icon, { IIconName } from "../common/Icon";
-import PrimaryIconButton from "../common/Buttons/PrimaryIconButton";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -21,6 +20,7 @@ const Index = () => {
 
   const links: LinksProps[] = [
     { url: EAppRoutes.DASHBOARD, name: "My Dashboard", icon: "dashboard" },
+    { url: EAppRoutes.INVESTIGATION, name: "Investigation", icon: "dashboard" },
   ];
 
   const renderNavbarItem = useCallback((items: LinksProps[]) => {
@@ -45,14 +45,9 @@ const Index = () => {
       pt="23px"
       pb="45px"
       px="36px"
+      backgroundColor="black"
       alignItems="start"
     >
-      <Flex alignItems="center" justifyContent="space-between" w="100%">
-        <Box w="60px" h="60px" borderRadius="13px" overflow="hidden">
-          <NavLink to="/"></NavLink>
-        </Box>
-        <PrimaryIconButton aria-label="menu-button" iconName="sun" />
-      </Flex>
       <Box h="60px" />
       <VStack align="start" spacing="40px">
         {renderNavbarItem(links)}
@@ -98,9 +93,10 @@ const SidebarItem = ({ href, icon, size, title }: SidebarItemProps) => {
       as={NavLink}
       end
       to={href}
-      _hover={{ textDecoration: "none", color: "brand.500" }}
+      _hover={{ textDecoration: "none", color: "blue" }}
       _focus={{ boxShadow: "none" }}
-      _activeLink={{ color: "brand.500" }}
+      color="brand.500"
+      _activeLink={{ color: "white" }}
     >
       <Flex alignItems="center">
         <Icon icon={icon} size={size} />

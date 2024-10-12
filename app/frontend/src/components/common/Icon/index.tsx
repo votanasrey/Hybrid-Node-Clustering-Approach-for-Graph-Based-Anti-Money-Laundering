@@ -64,7 +64,8 @@ export type IIconName =
   | "time"
   | "trash"
   | "tree"
-  | "upload";
+  | "upload"
+  | "user";
 
 interface IIconProps {
   icon: IIconName;

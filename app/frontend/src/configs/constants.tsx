@@ -4,6 +4,7 @@ export enum ECookies {
 }
 export enum EAppRoutes {
   DASHBOARD = "/",
+  INVESTIGATION = "/investigation",
   REGISTER = "/register",
   LOGIN = "/login",
 }

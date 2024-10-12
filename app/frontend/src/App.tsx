@@ -12,7 +12,7 @@ import Login from "./routes/login";
 import Dashboard from "./routes/dashboard";
 
 function RequiredAuth({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = Cookies.get(ECookies.AUTH_TOKEN);
+  const isAuthenticated = Cookies.get(ECookies.AUTH_TOKEN) ?? true;
 
   const location = useLocation();
   return isAuthenticated ? (
