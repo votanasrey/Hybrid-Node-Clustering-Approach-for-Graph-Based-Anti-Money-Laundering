@@ -168,4 +168,3 @@ data
 .venv 
 *venv
 *.xslx
-test.ipynb
