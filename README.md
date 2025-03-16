@@ -1,2 +1,1 @@
-# Applied-Machine-Learning-Techniques-for-Graph-Based-Anomaly-Transaction-Detection-in-Mobile-Banking
-This research focuses on applying machine learning techniques to detect anomalous transactions in mobile banking using graph-based data structures. By modeling relationships between users, accounts, and transactions as graphs, the study aims to enhance the accuracy of detecting unusual or fraudulent behavior in real-time.
+# Hybrid Node Clustering Approach for Graph-Based Anti-Money Laundering
