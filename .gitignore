@@ -168,3 +168,4 @@ data
 .venv 
 *venv
 *.xslx
+.env
