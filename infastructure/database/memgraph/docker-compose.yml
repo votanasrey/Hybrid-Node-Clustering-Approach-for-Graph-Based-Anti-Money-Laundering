@@ -1,5 +1,4 @@
 services:
-
   memgraph:
     image: memgraph/memgraph-mage:latest
     container_name: memgraph-mage
@@ -12,7 +11,16 @@ services:
       timeout: 5s
       retries: 3
       start_period: 0s
-    command: ["--log-level=TRACE"] 
+    volumes:
+      - mg_lib:/var/lib/memgraph
+      - mg_log:/var/log/memgraph
+      - mg_etc:/etc/memgraph
+      - ./ind.cypherl:/usr/lib/memgraph/ind.cypherl
+      - modules:/usr/lib/memgraph/query_modules
+    env_file:
+      - ./.env
+    restart: always
+
   lab:
     image: memgraph/lab:latest
     container_name: memgraph-lab
@@ -23,3 +31,16 @@ services:
     environment:
       - QUICK_CONNECT_MG_HOST=memgraph
       - QUICK_CONNECT_MG_PORT=7687
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 0s
+    restart: always
+
+volumes:
+  mg_lib:
+  mg_log:
+  mg_etc:
+  modules:

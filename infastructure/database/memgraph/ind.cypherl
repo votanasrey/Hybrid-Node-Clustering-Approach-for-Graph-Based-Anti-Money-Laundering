@@ -1,0 +1,2 @@
+CREATE INDEX ON :Account(account_id);
+CREATE INDEX ON :Transaction(transaction_id);
