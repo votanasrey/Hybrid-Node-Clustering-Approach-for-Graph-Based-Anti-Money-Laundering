@@ -25,9 +25,9 @@ class MemgraphClient:
     def execute_query(self, query, params=None):
         if not self.connection:
             print("⚠️ No active Memgraph connection.")
-            return None
+            return []
         try:
             return list(self.connection.execute_and_fetch(query, params or {}))
         except Exception as e:
             print(f"❌ Query execution failed: {e}")
-            return None
+            return []
