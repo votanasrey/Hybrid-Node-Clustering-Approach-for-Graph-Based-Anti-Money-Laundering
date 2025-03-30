@@ -15,27 +15,31 @@ class GraphFeatureExtractor:
 
     def run_pagerank(self) -> Dict[int, float]:
         query = '''
-            CALL algo.pageRank('Node', 'CONNECTED', {maxIter: 100, dampingFactor: 0.85})
-            YIELD nodeId, score
-            RETURN nodeId, score
+            CALL nxalg.pagerank() 
+            YIELD node, rank
+            WITH node, rank
+            WHERE node:Account
+            RETURN node, rank
+            ORDER BY rank DESC
         '''
         results = self.mg_client.execute_query(query)
         return {row[0]: row[1] for row in results}
 
     def run_betweenness_centrality(self) -> Dict[int, float]:
         query = '''
-            CALL algo.betweenness('Node', 'CONNECTED', {write: true, direction: 'BOTH'})
-            YIELD nodeId, centrality
-            RETURN nodeId, centrality
+            CALL nxalg.betweenness_centrality() 
+            YIELD node, betweenness
+            WITH node, betweenness
+            WHERE node:Account
+            RETURN node, betweenness
+            ORDER BY betweenness DESC;
         '''
         results = self.mg_client.execute_query(query)
         return {row[0]: row[1] for row in results}
 
     def run_community_detection(self) -> Dict[int, int]:
         query = '''
-            CALL algo.louvain('Node', 'CONNECTED', {write: true})
-            YIELD nodeId, communityId
-            RETURN nodeId, communityId
+            
         '''
         results = self.mg_client.execute_query(query)
         return {row[0]: row[1] for row in results}
