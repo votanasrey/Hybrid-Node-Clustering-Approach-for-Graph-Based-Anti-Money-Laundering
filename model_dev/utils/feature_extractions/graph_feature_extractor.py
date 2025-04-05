@@ -16,107 +16,87 @@ class GraphFeatureExtractor:
     def __init__(self):
         self.mg_client = MemgraphClient()
     
-    def extract_node_static_features(self) -> List[Dict[str, Any]]:
+    def extract_node_features(self) -> List[Dict[str, Any]]:
         try: 
             query = '''
-                MATCH (a:Account)-[:FROM]->(t:Transaction)-[:TO]->(receiver:Account)
-                RETURN a.account_id AS account_id,
+                MATCH (a:Account)-[:FROM]->(t:Transaction)-[:TO]->(r:Account)
+                WITH 
+                    a.account_id AS account_id,
                     a.bank AS bank,
-                    a.rank AS rank,
                     a.betweenness AS betweenness,
                     a.pagerank AS pagerank,
-                    t.amount_paid AS amount_paid,
-                    t.amount_received AS amount_received,
-                    t.is_laundering AS is_laundering,
-                    t.payment_currency AS payment_currency,
-                    t.payment_format AS payment_format,
-                    t.receiving_currency AS receiving_currency,
-                    t.timestamp AS timestamp,
-                    t.transaction_id AS transaction_id,
-                    t.usd_amount AS usd_amount
+
+                    COUNT(DISTINCT t.transaction_id) AS total_trxns,
+                    COUNT(DISTINCT CASE WHEN t.is_laundering = 1 THEN r.account_id END) AS total_fraud_trxns,
+                    COUNT(DISTINCT r.account_id) AS total_receivers,
+                    SUM(t.usd_amount) AS total_usd_amount,
+                    AVG(t.usd_amount) AS avg_usd_amount,
+                    MAX(t.usd_amount) AS max_usd_amount,
+                    MIN(t.usd_amount) AS min_usd_amount,
+                    COUNT(CASE WHEN t.usd_amount < 1000 THEN 1 END) AS total_small_txns,
+                    COUNT(CASE WHEN t.usd_amount > 10000 THEN 1 END) AS total_high_txns,
+                    COUNT(CASE WHEN t.payment_format = "Cash" THEN 1 END) AS total_cash_txns,
+                    COUNT(DISTINCT t.payment_format) AS unique_payment_formats,
+
+                    COUNT(DISTINCT date(t.timestamp)) AS total_active_days,
+                    MIN(localDatetime(t.timestamp)) AS first_trxns_datetime,
+                    MAX(localDatetime(t.timestamp)) AS last_trxns_datetime
+
+                RETURN 
+                    account_id,
+                    bank,
+                    betweenness,
+                    pagerank,
+                    unique_payment_formats,
+
+                    total_trxns,
+                    total_fraud_trxns,
+                    total_receivers,
+                    total_usd_amount,
+                    avg_usd_amount,
+                    max_usd_amount,
+                    min_usd_amount,
+                    total_small_txns,
+                    total_high_txns,
+                    total_cash_txns,
+                    total_active_days,
+                    toFloat((max_usd_amount / avg_usd_amount)) AS ratio_max_to_avg,
+                    (toFloat(total_fraud_trxns) / total_receivers) AS ratio_fraud_receiver
             '''
             features = self.mg_client.execute_query(query)
-            account_map = defaultdict(list)
-            for f in features:
-                account_map[f["account_id"]].append(f)
 
             account_feature_list = []
-            for account_id, rows in account_map.items():
-                # Basic account-level info
-                account_features = {
-                    "account_id": account_id,
-                    "bank": rows[0]["bank"],
-                    "rank": rows[0]["rank"],
-                    "betweenness": rows[0]["betweenness"],
-                    "pagerank": rows[0]["pagerank"]
-                }
-
-                # Aggregated transaction features
-                total_paid = sum(f["amount_paid"] for f in rows)
-                total_received = sum(f["amount_received"] for f in rows)
-                total_usd_amount = sum(f["usd_amount"] for f in rows)
-                num_transactions = len(rows)
-
-                timestamps = [
-                    f["timestamp"] if isinstance(f["timestamp"], datetime)
-                    else datetime.strptime(f["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ")
-                    for f in rows if f["timestamp"] is not None
-                ]
-                timestamps.sort()
-                if len(timestamps) > 1:
-                    time_diffs = [(timestamps[i] - timestamps[i - 1]).total_seconds() for i in range(1, len(timestamps))]
-                    avg_transaction_interval = sum(time_diffs) / len(time_diffs)
-                else:
-                    avg_transaction_interval = None
-
-                usd_transactions = sum(1 for f in rows if f["payment_currency"] == "US Dollar")
-                usd_percentage = (usd_transactions / num_transactions) * 100 if num_transactions > 0 else 0
-
-                account_features.update({
-                    "total_paid": total_paid,
-                    "total_received": total_received,
-                    "total_usd_amount": total_usd_amount,
-                    "num_transactions": num_transactions,
-                    "avg_transaction_interval": avg_transaction_interval,
-                    "usd_percentage": usd_percentage
-                })
-
-                account_feature_list.append(account_features)
-            return account_feature_list
-        except Exception as e:
-            logging.error(f"Eror to extract the graph features: {e}")
-
-    def extract_node_aggregrate_features(self) -> List[Dict[str, Any]]:
-        try: 
-            query = '''
-                MATCH (a:Account)-[:FROM]->(t:Transaction)-[:TO]->(receiver:Account)
-                RETURN DISTINCT 
-                    a.account_id AS account_id,
-                    COUNT(DISTINCT t.transaction_id) AS num_transactions,
-                    COUNT(DISTINCT CASE WHEN t.is_laundering = 1 THEN receiver.account_id END) AS num_fraud_transactions,
-                    COUNT(DISTINCT receiver.account_id) AS num_receivers
-            '''
-            features = self.mg_client.execute_query(query)
-            account_map = defaultdict(list)
             for f in features:
-                account_map[f["account_id"]].append(f)
-
-            account_feature_list = []
-            for account_id, rows in account_map.items():
                 account_features = {
-                    "account_id": account_id,
-                    "num_transactions": rows[0]["num_transactions"],
-                    "num_fraud_transactions": rows[0]["num_fraud_transactions"],
-                    "num_receivers": rows[0]["num_receivers"]
-                }
+                    "account_id": f["account_id"],
+                    "bank": f["bank"],
+                    "betweenness": f["betweenness"],
+                    "pagerank": f["pagerank"],
+                    "unique_payment_formats": f["unique_payment_formats"],
 
+                    "total_trxns": f["total_trxns"],
+                    "total_fraud_trxns": f["total_fraud_trxns"],
+                    "total_receivers": f["total_receivers"],
+                    "total_usd_amount": f["total_usd_amount"],
+                    "avg_usd_amount": f["avg_usd_amount"],
+                    "max_usd_amount": f["max_usd_amount"],
+                    "min_usd_amount": f["min_usd_amount"],
+                    "total_small_txns": f["total_small_txns"],
+                    "total_high_txns": f["total_high_txns"],
+                    "total_cash_txns": f["total_cash_txns"],
+                    "total_active_days": f["total_active_days"],
+                    "ratio_max_to_avg": f["ratio_max_to_avg"],
+                    "ratio_fraud_receiver": f["ratio_fraud_receiver"]
+                }
                 account_feature_list.append(account_features)
+
             return account_feature_list
         except Exception as e:
-            logging.error(f"Eror to extract the graph features: {e}")
+            logging.error(f"Error extracting graph features: {e}")
+
 
 
 if __name__ == "__main__":
     graph_extractor = GraphFeatureExtractor()
-    features_for_ml = graph_extractor.extract_node_aggregrate_features()
+    features_for_ml = graph_extractor.extract_node_features()
     print(features_for_ml)
