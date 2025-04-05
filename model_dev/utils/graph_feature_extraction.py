@@ -19,11 +19,12 @@ class GraphFeatureExtractor:
             YIELD node, rank
             WITH node, rank
             WHERE node:Account
-            RETURN node, rank
+            RETURN id(node) AS node_id, rank
             ORDER BY rank DESC
         '''
         results = self.mg_client.execute_query(query)
-        return {row[0]: row[1] for row in results}
+        print("Pagerank results:", results[10]) 
+        return {row["node_id"]: row["rank"] for row in results}
 
     def run_betweenness_centrality(self) -> Dict[int, float]:
         query = '''
@@ -31,52 +32,54 @@ class GraphFeatureExtractor:
             YIELD node, betweenness
             WITH node, betweenness
             WHERE node:Account
-            RETURN node, betweenness
-            ORDER BY betweenness DESC;
+            RETURN id(node) AS node_id, betweenness
+            ORDER BY betweenness DESC
         '''
         results = self.mg_client.execute_query(query)
-        return {row[0]: row[1] for row in results}
+        print("Betweenness results:", results[10])  # Debugging
+        return {row["node_id"]: row["betweenness"] for row in results}
 
-    def run_community_detection(self) -> Dict[int, int]:
-        query = '''
-            
-        '''
-        results = self.mg_client.execute_query(query)
-        return {row[0]: row[1] for row in results}
+
 
     def update_node_properties(self, node_features: Dict[int, Dict[str, Any]]):
         for node_id, features in node_features.items():
-            set_clause = ", ".join([f"{key} = {value}" for key, value in features.items()])
-            query = f"SET NODE {node_id} SET {set_clause}"
+            query = f'''
+                MATCH (n:Account) WHERE id(n) = {node_id}
+                SET {", ".join([f"n.{k} = {repr(v)}" for k, v in features.items() if v is not None])}
+            '''
             self.mg_client.execute_query(query)
+        print("ALL nodes updated the features of pagerank and betweeness")
 
     def extract_and_update_features(self):
         pagerank_scores = self.run_pagerank()
         betweenness_centrality = self.run_betweenness_centrality()
-        community_detection = self.run_community_detection()
         node_features = {}
-        for node_id in set(pagerank_scores.keys()).union(betweenness_centrality.keys(), community_detection.keys()):
+        for node_id in set(pagerank_scores.keys()).union(betweenness_centrality.keys()):
             features = {
                 "pagerank": pagerank_scores.get(node_id, None),
-                "betweenness": betweenness_centrality.get(node_id, None),
-                "community": community_detection.get(node_id, None)
+                "betweenness": betweenness_centrality.get(node_id, None)
             }
             node_features[node_id] = features
         self.update_node_properties(node_features)
 
-    def fetch_features_for_ml(self) -> List[List[Any]]:
+    def fetch_account_node_features(self) -> List[Dict[str, Any]]:
         query = '''
-            MATCH (n:Node)
-            RETURN n.nodeId AS node_id, n.pagerank AS pagerank, n.betweenness AS betweenness, n.community AS community
+            MATCH (n:Account)
+            RETURN n.account_id AS node_id, n.pagerank AS pagerank, n.betweenness AS betweenness
         '''
         features = self.mg_client.execute_query(query)
-        return [[f[1], f[2], f[3]] for f in features]  
+
+        result_list = []
+        for feature in features:
+            result_dict = {key: feature[key] for key in feature}
+            result_list.append(result_dict)
+
+        return result_list
 
 
-if __name__ == "__main__":
-    graph_extractor = GraphFeatureExtractor()
-    graph_extractor.extract_and_update_features()
-    features_for_ml = graph_extractor.fetch_features_for_ml()
 
-    for feature_set in features_for_ml:
-        print(f"Node features: {feature_set}")
+# if __name__ == "__main__":
+#     graph_extractor = GraphFeatureExtractor()
+#     graph_extractor.extract_and_update_features()
+#     features_for_ml = graph_extractor.fetch_account_node_features()
+#     print(features_for_ml)
