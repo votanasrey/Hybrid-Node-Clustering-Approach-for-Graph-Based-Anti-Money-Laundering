@@ -33,8 +33,7 @@ class GraphFeatureExtractor:
                     t.receiving_currency AS receiving_currency,
                     t.timestamp AS timestamp,
                     t.transaction_id AS transaction_id,
-                    t.usd_amount AS usd_amount,
-                    COUNT(DISTINCT receiver.account_id) AS num_receivers
+                    t.usd_amount AS usd_amount
             '''
             features = self.mg_client.execute_query(query)
             account_map = defaultdict(list)
