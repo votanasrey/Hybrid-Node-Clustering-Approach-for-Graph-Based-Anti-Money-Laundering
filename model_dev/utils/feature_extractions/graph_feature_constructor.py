@@ -8,10 +8,8 @@ from datetime import datetime
 from collections import defaultdict
 import logging 
 
-
 from services.memgraph import MemgraphClient
 mg_client = MemgraphClient()
-
 
 class GraphFeatureConstructor:
     def __init__(self):

@@ -16,7 +16,7 @@ class GraphFeatureExtractor:
     def __init__(self):
         self.mg_client = MemgraphClient()
     
-    def fetch_node_static_features(self) -> List[Dict[str, Any]]:
+    def extract_node_static_features(self) -> List[Dict[str, Any]]:
         try: 
             query = '''
                 MATCH (a:Account)-[:FROM]->(t:Transaction)-[:TO]->(receiver:Account)
@@ -33,7 +33,8 @@ class GraphFeatureExtractor:
                     t.receiving_currency AS receiving_currency,
                     t.timestamp AS timestamp,
                     t.transaction_id AS transaction_id,
-                    t.usd_amount AS usd_amount
+                    t.usd_amount AS usd_amount,
+                    COUNT(DISTINCT receiver.account_id) AS num_receivers
             '''
             features = self.mg_client.execute_query(query)
             account_map = defaultdict(list)
@@ -86,8 +87,37 @@ class GraphFeatureExtractor:
         except Exception as e:
             logging.error(f"Eror to extract the graph features: {e}")
 
+    def extract_node_aggregrate_features(self) -> List[Dict[str, Any]]:
+        try: 
+            query = '''
+                MATCH (a:Account)-[:FROM]->(t:Transaction)-[:TO]->(receiver:Account)
+                RETURN DISTINCT 
+                    a.account_id AS account_id,
+                    COUNT(DISTINCT t.transaction_id) AS num_transactions,
+                    COUNT(DISTINCT CASE WHEN t.is_laundering = 1 THEN receiver.account_id END) AS num_fraud_transactions,
+                    COUNT(DISTINCT receiver.account_id) AS num_receivers
+            '''
+            features = self.mg_client.execute_query(query)
+            account_map = defaultdict(list)
+            for f in features:
+                account_map[f["account_id"]].append(f)
+
+            account_feature_list = []
+            for account_id, rows in account_map.items():
+                account_features = {
+                    "account_id": account_id,
+                    "num_transactions": rows[0]["num_transactions"],
+                    "num_fraud_transactions": rows[0]["num_fraud_transactions"],
+                    "num_receivers": rows[0]["num_receivers"]
+                }
+
+                account_feature_list.append(account_features)
+            return account_feature_list
+        except Exception as e:
+            logging.error(f"Eror to extract the graph features: {e}")
+
 
 if __name__ == "__main__":
     graph_extractor = GraphFeatureExtractor()
-    features_for_ml = graph_extractor.fetch_node_static_features()
+    features_for_ml = graph_extractor.extract_node_aggregrate_features()
     print(features_for_ml)
