@@ -73,16 +73,20 @@ class GraphFeatureExtractor:
                     CASE WHEN total_trxns = 0 THEN 0 ELSE toFloat(total_small_txns) / total_trxns END AS ratio_small_trxns,
                     CASE WHEN total_trxns = 0 THEN 0 ELSE toFloat(total_high_txns) / total_trxns END AS ratio_high_trxns,
 
+
                     ABS(pagerank - betweenness) AS pagerank_betweenness_difference,
                     CASE WHEN betweenness = 0 THEN 0 ELSE pagerank / betweenness END AS ratio_pagerank_betweenness,
                     CASE WHEN total_trxns = 0 THEN 0 ELSE pagerank / total_trxns END AS ratio_pagerank_txn,
-                    CASE WHEN avg_usd_amount = 0 THEN 0 ELSE pagerank / avg_usd_amount END AS ratio_pagerank_txn_amount
+                    CASE WHEN avg_usd_amount = 0 THEN 0 ELSE pagerank / avg_usd_amount END AS ratio_pagerank_txn_amount,
+                    CASE WHEN total_fraud_trxns >= 1 THEN 1 ELSE 0 END AS is_anomalies_account
+
 
                 RETURN 
                     account_id,
                     bank,
                     betweenness,
                     pagerank,
+                    is_anomalies_account,
                     total_trxns,
                     total_fraud_trxns,
                     total_receivers,

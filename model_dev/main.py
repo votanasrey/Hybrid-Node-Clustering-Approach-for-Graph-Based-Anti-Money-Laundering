@@ -1,7 +1,10 @@
 import pandas as pd #type: ignore
 from utils.feature_extractions.graph_feature_extractor import GraphFeatureExtractor
-from utils.training.isolation_forest_training import (
+from utils.trainings.isolation_forest_trainer import (
     train_isolation_forest
+)
+from utils.evaluations.isolation_forest_evaluator import (
+    evaluate_isolation_forest
 )
 
 graph_extractor = GraphFeatureExtractor()
@@ -65,6 +68,23 @@ new_result = predict_anomalies(
     isolation_forst_model
 )
 
+print("Ground Truth: ", df["is_anomalies_account"].value_counts()) 
+
+
 print("New Results")
 print(new_result)
 print("Detected Anomaly Dist: ", new_result["anomaly_flag"].value_counts()) 
+
+print("Evaluation Model")
+y_true = df['is_anomalies_account']
+# After your model prediction:
+evaluation_results = evaluate_isolation_forest(
+    result_df=new_result,
+    true_labels=y_true,  # Your ground truth labels
+    label_column='anomaly_flag',
+    score_column='anomaly_score',
+    visualize=True
+)
+
+# Access specific metrics if needed
+print(f"AUC-ROC: {evaluation_results.get('roc_auc')}")
