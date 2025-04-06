@@ -7,16 +7,16 @@ from typing import Dict, Any, List
 from collections import defaultdict
 import logging
 import pandas as pd #type: ignore 
-
+import numpy as np #type: ignore 
+from sklearn.preprocessing import StandardScaler #type: ignore 
+from sklearn.decomposition import PCA #type: ignore 
 from services.memgraph import MemgraphClient
-mg_client = MemgraphClient()
-
 
 class GraphFeatureExtractor:
     def __init__(self):
         self.mg_client = MemgraphClient()
 
-    def extract_node_features(self) -> List[Dict[str, Any]]:
+    def extract_node_features(self):
         try:
             print("✅ Querying Data from Memgraph")
             query = '''
@@ -73,7 +73,6 @@ class GraphFeatureExtractor:
                     CASE WHEN total_trxns = 0 THEN 0 ELSE toFloat(total_small_txns) / total_trxns END AS ratio_small_trxns,
                     CASE WHEN total_trxns = 0 THEN 0 ELSE toFloat(total_high_txns) / total_trxns END AS ratio_high_trxns,
 
-                    (pagerank * betweenness) AS pagerank_betweenness_interaction,
                     ABS(pagerank - betweenness) AS pagerank_betweenness_difference,
                     CASE WHEN betweenness = 0 THEN 0 ELSE pagerank / betweenness END AS ratio_pagerank_betweenness,
                     CASE WHEN total_trxns = 0 THEN 0 ELSE pagerank / total_trxns END AS ratio_pagerank_txn,
@@ -106,7 +105,6 @@ class GraphFeatureExtractor:
                     ratio_cash_trxns,
                     ratio_small_trxns,
                     ratio_high_trxns,
-                    pagerank_betweenness_interaction,
                     pagerank_betweenness_difference,
                     ratio_pagerank_betweenness,
                     ratio_pagerank_txn,
@@ -124,17 +122,94 @@ class GraphFeatureExtractor:
                 df = pd.DataFrame(account_feature_list)
             except Exception as e:
                 print(f"❌ Cannot convert to dataframe {e}", flush=True)
-
-            print("✅ Applying the Feature Engineering")
-            print(df.info())
             return df
 
         except Exception as e:
             print(f"❌ Error extracting graph features: {e}", flush=True)
             return None
 
+    def apply_feature_engineering(self, df):
+        """
+        Preprocess transaction data and engineer new features for anomaly detection.
+        
+        Parameters:
+        -----------
+        df : pandas.DataFrame
+            DataFrame containing the transaction features
+        
+        Returns:
+        --------
+        pandas.DataFrame
+            Processed DataFrame with additional engineered features
+        dict
+            Dictionary of preprocessing metadata (feature lists, correlation info)
+        """
+        print("✅ Applying the Feature Engineering")
+        processed_df = df.copy()
+        
+        # Step 1: Handle non-numeric columns
+        numeric_cols = processed_df.select_dtypes(include=['float64', 'int64']).columns
+        non_numeric_cols = [col for col in processed_df.columns if col not in numeric_cols]
+        
+        # Step 2: Apply log transformation to amount-based features
+        amount_cols = [col for col in numeric_cols if 'amount' in col.lower() or 'usd' in col.lower()]
+        for col in amount_cols:
+            processed_df[f'{col}_log'] = np.log1p(processed_df[col])
+        
+        # Step 3: Add new engineered features
+        
+        # Transaction pattern features
+        processed_df['txn_size_variability'] = processed_df['max_usd_amount'] / (processed_df['min_usd_amount'] + 1)
+        processed_df['amount_count_ratio'] = processed_df['total_usd_amount'] / (processed_df['total_trxns'] + 1)
+        processed_df['small_high_ratio'] = (processed_df['total_small_txns'] + 1) / (processed_df['total_high_txns'] + 1)
+        
+        # Network pattern features
+        processed_df['network_anomaly_score'] = processed_df['pagerank'] * processed_df['ratio_fraud_receiver']
+        processed_df['position_activity_disparity'] = abs(processed_df['pagerank'] - (processed_df['total_trxns'] / processed_df['total_trxns'].max()))
+        
+        # Temporal pattern features
+        processed_df['variance_txns_per_day'] = processed_df['total_trxns'] / (processed_df['total_active_days'] ** 2)
+        processed_df['temporal_density'] = processed_df['total_trxns'] / (processed_df['total_active_days'] + 1)
+        
+        # Fraud-specific ratios
+        processed_df['fraud_to_normal_ratio'] = processed_df['total_fraud_trxns'] / (processed_df['total_trxns'] - processed_df['total_fraud_trxns'] + 1)
+        
+        # Combined metric features
+        processed_df['combined_network_centrality'] = processed_df['pagerank'] * processed_df['betweenness']
+        processed_df['risk_score'] = (
+            processed_df['ratio_fraud_usd_amount'] * 
+            processed_df['ratio_cash_trxns'] * 
+            processed_df['combined_network_centrality']
+        )
+        
+        # Step 4: Identify highly correlated features
+        # Get updated numeric columns after adding new features
+        numeric_cols = processed_df.select_dtypes(include=['float64', 'int64']).columns
+        
+        corr_matrix = processed_df[numeric_cols].corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+        to_drop = [column for column in upper.columns if any(upper[column] > 0.95)]
+        
+        # Step 5: Create feature lists for model training
+        id_cols = [col for col in non_numeric_cols if 'id' in col.lower() or col == 'account_id' or col == 'bank']
+        features_for_model = [col for col in numeric_cols if col not in id_cols and col not in to_drop]
+        
+        # Create metadata dictionary
+        preprocessing_metadata = {
+            'original_features': df.columns.tolist(),
+            'added_features': [col for col in processed_df.columns if col not in df.columns],
+            'highly_correlated_features': to_drop,
+            'features_for_model': features_for_model,
+            'id_columns': id_cols,
+            'numeric_columns': numeric_cols.tolist(),
+            'non_numeric_columns': non_numeric_cols
+        }
+        
+        return processed_df, preprocessing_metadata
 
 if __name__ == "__main__":
     graph_extractor = GraphFeatureExtractor()
-    features_for_ml = graph_extractor.extract_node_features()
-    print(features_for_ml)
+    df = graph_extractor.extract_node_features()
+    training_data, traning_metadata = graph_extractor.apply_feature_engineering(df)
+    print(training_data)
+    print(traning_metadata)
