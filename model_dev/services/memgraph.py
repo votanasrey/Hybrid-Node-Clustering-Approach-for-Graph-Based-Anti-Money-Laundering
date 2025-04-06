@@ -14,7 +14,10 @@ class MemgraphClient:
 
     def connect(self):
         try:
-            memgraph = Memgraph(self.host, self.port)
+            memgraph = Memgraph(
+                self.host, 
+                self.port
+            )
             if memgraph._get_cached_connection().is_active():
                 print(f"✅ Connected to Memgraph at {self.host}:{self.port}")
             return memgraph
@@ -24,10 +27,10 @@ class MemgraphClient:
 
     def execute_query(self, query, params=None):
         if not self.connection:
-            print("⚠️ No active Memgraph connection.")
+            print("⚠️ No Active Memgraph Connection.")
             return []
         try:
             return list(self.connection.execute_and_fetch(query, params or {}))
         except Exception as e:
-            print(f"❌ Query execution failed: {e}")
+            print(f"❌ Query Execution Failed: {e}")
             return []

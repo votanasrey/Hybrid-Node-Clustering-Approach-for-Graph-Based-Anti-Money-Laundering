@@ -18,6 +18,7 @@ class GraphFeatureExtractor:
 
     def extract_node_features(self) -> List[Dict[str, Any]]:
         try:
+            print("✅ Querying Data from Memgraph")
             query = '''
                 MATCH (a:Account)-[:FROM]->(t:Transaction)-[:TO]->(r:Account)
                 WITH 
@@ -114,6 +115,7 @@ class GraphFeatureExtractor:
             '''
             features = self.mg_client.execute_query(query)
             account_feature_list = []
+            print("✅ Transform the query results to Dataframe")
             for f in features:
                 # Dynamically map the keys from the query response
                 account_features = {key: f[key] for key in f}
@@ -121,11 +123,14 @@ class GraphFeatureExtractor:
             try: 
                 df = pd.DataFrame(account_feature_list)
             except Exception as e:
-                logging.error(f"Cannot convert to dataframe {e}")
+                print(f"❌ Cannot convert to dataframe {e}", flush=True)
+
+            print("✅ Applying the Feature Engineering")
+            print(df.info())
             return df
 
         except Exception as e:
-            logging.error(f"Error extracting graph features: {e}")
+            print(f"❌ Error extracting graph features: {e}", flush=True)
             return None
 
 
