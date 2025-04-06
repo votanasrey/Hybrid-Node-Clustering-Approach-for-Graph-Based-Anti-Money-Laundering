@@ -6,6 +6,7 @@ sys.path.append(os.getenv("PROJECT_PATH"))
 from typing import Dict, Any, List
 from collections import defaultdict
 import logging
+import pandas as pd #type: ignore 
 
 from services.memgraph import MemgraphClient
 mg_client = MemgraphClient()
@@ -117,10 +118,15 @@ class GraphFeatureExtractor:
                 # Dynamically map the keys from the query response
                 account_features = {key: f[key] for key in f}
                 account_feature_list.append(account_features)
-            return account_feature_list
+            try: 
+                df = pd.DataFrame(account_feature_list)
+            except Exception as e:
+                logging.error(f"Cannot convert to dataframe {e}")
+            return df
 
         except Exception as e:
             logging.error(f"Error extracting graph features: {e}")
+            return None
 
 
 if __name__ == "__main__":
