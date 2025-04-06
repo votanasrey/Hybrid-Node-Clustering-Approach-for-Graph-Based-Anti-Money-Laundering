@@ -207,9 +207,9 @@ class GraphFeatureExtractor:
         
         return processed_df, preprocessing_metadata
 
-if __name__ == "__main__":
-    graph_extractor = GraphFeatureExtractor()
-    df = graph_extractor.extract_node_features()
-    training_data, traning_metadata = graph_extractor.apply_feature_engineering(df)
-    print(training_data)
-    print(traning_metadata)
+# if __name__ == "__main__":
+#     graph_extractor = GraphFeatureExtractor()
+#     df = graph_extractor.extract_node_features()
+#     training_data, traning_metadata = graph_extractor.apply_feature_engineering(df)
+#     print(training_data)
+#     print(traning_metadata)
